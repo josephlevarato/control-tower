@@ -1,5 +1,3 @@
-using System.Globalization;
-
 namespace Shared.Tests;
 
 public class PosReportParserTest {
@@ -63,11 +61,139 @@ public class PosReportParserTest {
     }
 
     [Fact]
-    public void BadCoordinatesTest()
+    public void MalformedDateTimeTest()
     {
-        string payload = "POS/UL204.FR RGN/TO BKK/041205/N9030.0E09612.5/450/12500/2800";
-        ParseResult result = PosReportParser.Parse(payload);
-        Assert.False(result.IsSuccess);
-        Assert.Equal("Latitude cannot be over 90", result.Error);
+        string tooManyDateNumbersPayload = "POS/UL204.FR RGN/TO BKK/12042026/N1642.3E09612.5/450/12500/2800";
+        ParseResult r1 = PosReportParser.Parse(tooManyDateNumbersPayload);
+        Assert.False(r1.IsSuccess);
+        Assert.Equal("Failed to parse datetime", r1.Error);
+
+        string actualStringDatePayload = "POS/UL204.FR RGN/TO BKK/ABCDEF/N1642.3E09612.5/450/12500/2800";
+        ParseResult r2 = PosReportParser.Parse(actualStringDatePayload);
+        Assert.False(r2.IsSuccess);
+        Assert.Equal("Failed to parse datetime", r2.Error);
+    }
+
+    [Fact]
+    public void InvalidDateTimeTest()
+    {
+        string zeroesPayload = "POS/UL204.FR RGN/TO BKK/000000/N1642.3E09612.5/450/12500/2800";
+        ParseResult r1 = PosReportParser.Parse(zeroesPayload);
+        Assert.False(r1.IsSuccess);
+        Assert.Equal("Day must be between 1 and 31", r1.Error);
+
+        string wrongHoursPayload = "POS/UL204.FR RGN/TO BKK/029901/N1642.3E09612.5/450/12500/2800";
+        ParseResult r2 = PosReportParser.Parse(wrongHoursPayload);
+        Assert.False(r2.IsSuccess);
+        Assert.Equal("Hour must be between 0 and 23", r2.Error);
+
+        string wrongMinutesPayload = "POS/UL204.FR RGN/TO BKK/020599/N1642.3E09612.5/450/12500/2800";
+        ParseResult r3 = PosReportParser.Parse(wrongMinutesPayload);
+        Assert.False(r3.IsSuccess);
+        Assert.Equal("Minutes must be between 0 and 59", r3.Error);
+    }
+
+    [Fact]
+    public void MalformedCoordinatesTest()
+    {
+        string gibberishCoordinates = "POS/UL204.FR RGN/TO BKK/041205/COORDINATES/450/12500/2800";
+        ParseResult r1 = PosReportParser.Parse(gibberishCoordinates);
+        Assert.False(r1.IsSuccess);
+        Assert.Equal("Error parsing coordinates", r1.Error);
+    }
+
+    [Fact]
+    public void IncorrectCoordinatesFormatTest()
+    {
+        string wrongLat = "POS/UL204.FR RGN/TO BKK/041205/N9242.3E09612.5/450/12500/2800";
+        ParseResult r1 = PosReportParser.Parse(wrongLat);
+        Assert.False(r1.IsSuccess);
+        Assert.Equal("Latitude cannot be over 90", r1.Error);
+
+        string wrongLatMin = "POS/UL204.FR RGN/TO BKK/041205/N1672.3E09612.5/450/12500/2800";
+        ParseResult r2 = PosReportParser.Parse(wrongLatMin);
+        Assert.False(r2.IsSuccess);
+        Assert.Equal("Minutes cannot be over 60", r2.Error);
+
+        string wrongLng = "POS/UL204.FR RGN/TO BKK/041205/N1642.3E20012.5/450/12500/2800";
+        ParseResult r3 = PosReportParser.Parse(wrongLng);
+        Assert.False(r3.IsSuccess);
+        Assert.Equal("Longitude cannot be over 180", r3.Error);
+
+        string wrongLngMin = "POS/UL204.FR RGN/TO BKK/041205/N1642.3E09697.3/450/12500/2800";
+        ParseResult r4 = PosReportParser.Parse(wrongLngMin);
+        Assert.False(r4.IsSuccess);
+        Assert.Equal("Minutes cannot be over 60", r4.Error);
+    }
+
+    [Fact]
+    public void BadCalculatedCoordinatesTest()
+    {
+        string badLatitude = "POS/UL204.FR RGN/TO BKK/041205/N9030.0E09612.5/450/12500/2800";
+        ParseResult r1 = PosReportParser.Parse(badLatitude);
+        Assert.False(r1.IsSuccess);
+        Assert.Equal("Latitude cannot be over 90", r1.Error);
+
+        string badLongitude = "POS/UL204.FR RGN/TO BKK/041205/N1642.3E18012.5/450/12500/2800";
+        ParseResult r2 = PosReportParser.Parse(badLongitude);
+        Assert.False(r2.IsSuccess);
+        Assert.Equal("Longitude cannot be over 180", r2.Error);
+    }
+
+    [Fact]
+    public void BadSpeedKnotValuesTest()
+    {
+        string stringSpeedKnot = "POS/UL204.FR RGN/TO BKK/041205/N1642.3E09612.5/FAST/12500/2800";
+        ParseResult r1 = PosReportParser.Parse(stringSpeedKnot);
+        Assert.False(r1.IsSuccess);
+        Assert.Equal("Invalid ground speed knot", r1.Error);
+
+        string timeFreeze = "POS/UL204.FR RGN/TO BKK/041205/N1642.3E09612.5/0/12500/2800";
+        ParseResult r2 = PosReportParser.Parse(timeFreeze);
+        Assert.False(r2.IsSuccess);
+        Assert.Equal("Ground speed knot needs to be over 0", r2.Error);
+
+        string negativeSpeed = "POS/UL204.FR RGN/TO BKK/041205/N1642.3E09612.5/-450/12500/2800";
+        ParseResult r3 = PosReportParser.Parse(negativeSpeed);
+        Assert.False(r3.IsSuccess);
+        Assert.Equal("Ground speed knot needs to be over 0", r3.Error);
+    }
+
+    [Fact]
+    public void BadFuelOnBoardValuesTest()
+    {
+        string stringFuelQuantity = "POS/UL204.FR RGN/TO BKK/041205/N1642.3E09612.5/450/AFULLTANK/2800";
+        ParseResult r1 = PosReportParser.Parse(stringFuelQuantity);
+        Assert.False(r1.IsSuccess);
+        Assert.Equal("Invalid fuel weight", r1.Error);
+
+        string emptyTanks = "POS/UL204.FR RGN/TO BKK/041205/N1642.3E09612.5/450/0/2800";
+        ParseResult r2 = PosReportParser.Parse(emptyTanks);
+        Assert.True(r2.IsSuccess);
+        Assert.Null(r2.Error);
+
+        string negativeWeight = "POS/UL204.FR RGN/TO BKK/041205/N1642.3E09612.5/450/-800/2800";
+        ParseResult r3 = PosReportParser.Parse(negativeWeight);
+        Assert.False(r3.IsSuccess);
+        Assert.Equal("Fuel weight needs to be over 0", r3.Error);
+    }
+
+    [Fact]
+    public void BadFuelFlowValuesTest()
+    {
+        string stringFuelFlow = "POS/UL204.FR RGN/TO BKK/041205/N1642.3E09612.5/450/12500/SLURP";
+        ParseResult r1 = PosReportParser.Parse(stringFuelFlow);
+        Assert.False(r1.IsSuccess);
+        Assert.Equal("Invalid fuel flow value", r1.Error);
+
+        string planeOnGround = "POS/UL204.FR RGN/TO BKK/041205/N1642.3E09612.5/450/12500/0";
+        ParseResult r2 = PosReportParser.Parse(planeOnGround);
+        Assert.True(r2.IsSuccess);
+        Assert.Null(r2.Error);
+
+        string greenEnergy = "POS/UL204.FR RGN/TO BKK/041205/N1642.3E09612.5/450/12500/-2900";
+        ParseResult r3 = PosReportParser.Parse(greenEnergy);
+        Assert.False(r3.IsSuccess);
+        Assert.Equal("Fuel flow value needs to be over 0", r3.Error);
     }
 }

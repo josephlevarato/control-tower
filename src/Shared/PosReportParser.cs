@@ -52,19 +52,19 @@ public static class PosReportParser {
         int day = int.Parse(dateTimeMatch.Groups["day"].Value);
         if (1 > day || day > 31 )
         {
-            return ParseResult.Fail("Day must be between 1 and 31");;
+            return ParseResult.Fail("Day must be between 1 and 31");
         }
 
         int hour = int.Parse(dateTimeMatch.Groups["hour"].Value);
         if (0 > hour || hour > 23 )
         {
-            return ParseResult.Fail("Hour must be between 0 and 23");;
+            return ParseResult.Fail("Hour must be between 0 and 23");
         }
 
         int minute = int.Parse(dateTimeMatch.Groups["minute"].Value);
         if (0 > minute || minute > 59 )
         {
-            return ParseResult.Fail("Minutes must be between 0 and 59");;
+            return ParseResult.Fail("Minutes must be between 0 and 59");
         }
 
         string coordinates = parts[4];

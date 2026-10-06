@@ -6,6 +6,8 @@ public sealed record ResolvedIdentity(string FlightId, string Timestamp);
 
 public static class FlightIdentity
 {
+    // The report only carries day/hour/minute. A report can't come from the future,
+    // so a day later than today's means the report was sent last month.
     public static Result<ResolvedIdentity> Resolve(PosReport report, DateTimeOffset receivedAt)
     {
         DateTime utc = receivedAt.UtcDateTime;

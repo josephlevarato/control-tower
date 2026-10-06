@@ -2,54 +2,35 @@ namespace Shared;
 
 using System.Globalization;
 
-public sealed record IdentityResult(string? Value, string? Error)
+public sealed record ResolvedIdentity(string FlightId, string Timestamp);
+
+public sealed record IdentityResult(ResolvedIdentity? Identity, string? Error)
 {
-    public bool IsSuccess => Value is not null;
-    public static IdentityResult Ok(string value) => new(value, null);
+    public bool IsSuccess => Identity is not null;
+    public static IdentityResult Ok(ResolvedIdentity identity) => new(identity, null);
     public static IdentityResult Fail(string error) => new(null, error);
 }
 
 public static class FlightIdentity
 {
-    private const string ImpossibleDateError = "Report day does not exist in the resolved month";
-
-    public static IdentityResult BuildFlightId(PosReport report, DateTimeOffset receivedAt)
-    {
-        DateTime? date = ResolveReportDate(report, receivedAt);
-        if (date is null)
-        {
-            return IdentityResult.Fail(ImpossibleDateError);
-        }
-
-        return IdentityResult.Ok(
-            report.FlightNumber
-            + date.Value.ToString("yyyyMMdd", CultureInfo.InvariantCulture)
-            + report.Departure
-            + report.Destination
-        );
-    }
-
-    public static IdentityResult BuildTimestamp(PosReport report, DateTimeOffset receivedAt)
-    {
-        DateTime? date = ResolveReportDate(report, receivedAt);
-        if (date is null)
-        {
-            return IdentityResult.Fail(ImpossibleDateError);
-        }
-
-        return IdentityResult.Ok(date.Value.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture));
-    }
-
-    private static DateTime? ResolveReportDate(PosReport report, DateTimeOffset receivedAt)
+    public static IdentityResult Resolve(PosReport report, DateTimeOffset receivedAt)
     {
         DateTime utc = receivedAt.UtcDateTime;
         DateTime month = report.Day > utc.Day ? utc.AddMonths(-1) : utc;
 
         if (report.Day > DateTime.DaysInMonth(month.Year, month.Month))
         {
-            return null;
+            return IdentityResult.Fail("Report day does not exist in the resolved month");
         }
 
-        return new DateTime(month.Year, month.Month, report.Day, report.Hour, report.Minute, 0, DateTimeKind.Utc);
+        DateTime date = new DateTime(month.Year, month.Month, report.Day, report.Hour, report.Minute, 0, DateTimeKind.Utc);
+
+        string flightId = report.FlightNumber
+            + date.ToString("yyyyMMdd", CultureInfo.InvariantCulture)
+            + report.Departure
+            + report.Destination;
+        string timestamp = date.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
+
+        return IdentityResult.Ok(new ResolvedIdentity(flightId, timestamp));
     }
 }

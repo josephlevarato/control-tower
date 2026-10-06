@@ -17,13 +17,11 @@ public class FlightIdentityTest {
         PosReport report = ParseWithDayTime(ddHHmm);
         DateTimeOffset received = DateTimeOffset.Parse(receivedAt);
 
-        IdentityResult timestamp = FlightIdentity.BuildTimestamp(report, received);
-        IdentityResult flightId = FlightIdentity.BuildFlightId(report, received);
+        IdentityResult result = FlightIdentity.Resolve(report, received);
 
-        Assert.True(timestamp.IsSuccess);
-        Assert.Equal(expectedTimestamp, timestamp.Value);
-        Assert.True(flightId.IsSuccess);
-        Assert.Equal(expectedFlightId, flightId.Value);
+        Assert.True(result.IsSuccess);
+        Assert.Equal(expectedTimestamp, result.Identity!.Timestamp);
+        Assert.Equal(expectedFlightId, result.Identity.FlightId);
     }
 
     [Fact]
@@ -32,12 +30,10 @@ public class FlightIdentityTest {
         PosReport report = ParseWithDayTime("301200");
         DateTimeOffset received = new DateTimeOffset(2026, 3, 1, 0, 1, 0, TimeSpan.Zero);
 
-        IdentityResult timestamp = FlightIdentity.BuildTimestamp(report, received);
-        IdentityResult flightId = FlightIdentity.BuildFlightId(report, received);
+        IdentityResult result = FlightIdentity.Resolve(report, received);
 
-        Assert.False(timestamp.IsSuccess);
-        Assert.Equal("Report day does not exist in the resolved month", timestamp.Error);
-        Assert.False(flightId.IsSuccess);
-        Assert.Equal("Report day does not exist in the resolved month", flightId.Error);
+        Assert.False(result.IsSuccess);
+        Assert.Null(result.Identity);
+        Assert.Equal("Report day does not exist in the resolved month", result.Error);
     }
 }

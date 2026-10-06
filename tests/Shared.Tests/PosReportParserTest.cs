@@ -12,11 +12,13 @@ public class PosReportParserTest {
         Assert.True(result.IsSuccess);
         Assert.IsType<PosReport>(result.Report);
 
-        Assert.Equal("UL20420260904RGNBKK", FlightIdentity.BuildFlightId(result.Report, receivedAt).Value);
+        IdentityResult identity = FlightIdentity.Resolve(result.Report, receivedAt);
+        Assert.True(identity.IsSuccess);
+        Assert.Equal("UL20420260904RGNBKK", identity.Identity!.FlightId);
         Assert.Equal("UL204", result.Report.FlightNumber);
         Assert.Equal("RGN", result.Report.Departure);
         Assert.Equal("BKK", result.Report.Destination);
-        Assert.Equal("2026-09-04T12:05:00Z", FlightIdentity.BuildTimestamp(result.Report, receivedAt).Value);
+        Assert.Equal("2026-09-04T12:05:00Z", identity.Identity.Timestamp);
         Assert.Equal(16.705, result.Report.Latitude);
         Assert.Equal(96.2083, result.Report.Longitude);
         Assert.Equal(450, result.Report.GroundSpeedKnots);

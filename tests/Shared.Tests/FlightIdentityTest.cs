@@ -12,6 +12,7 @@ public class FlightIdentityTest {
     [InlineData("2026-10-01T00:01:00Z", "302358", "2026-09-30T23:58:00Z", "UL20420260930RGNBKK")] // month boundary
     [InlineData("2027-01-01T00:01:00Z", "312358", "2026-12-31T23:58:00Z", "UL20420261231RGNBKK")] // year boundary
     [InlineData("2026-02-01T00:01:00Z", "312358", "2026-01-31T23:58:00Z", "UL20420260131RGNBKK")] // January date received in February
+    [InlineData("2027-01-01T00:30:00+01:00", "312330", "2026-12-31T23:30:00Z", "UL20420261231RGNBKK")] // Paris time, still Dec 31 in UTC
     public void ResolvesReportDateTest(string receivedAt, string ddHHmm, string expectedTimestamp, string expectedFlightId)
     {
         PosReport report = ParseWithDayTime(ddHHmm);

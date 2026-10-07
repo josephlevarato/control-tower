@@ -1,16 +1,18 @@
 import * as cdk from 'aws-cdk-lib/core';
+import * as s3 from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
-// import * as sqs from 'aws-cdk-lib/aws-sqs';
 
-export class InfraStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
-    super(scope, id, props);
+  export class InfraStack extends cdk.Stack {
+    constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+      super(scope, id, props);
 
-    // The code that defines your stack goes here
+      const bucket = new s3.Bucket(this, 'PosBucket', {
+        blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+        enforceSSL: true,
+        removalPolicy: cdk.RemovalPolicy.DESTROY, // assessment only: lets `cdk destroy` remove it
+        autoDeleteObjects: true,                  // empties it first, or deletion would fail
+      });
 
-    // example resource
-    // const queue = new sqs.Queue(this, 'InfraQueue', {
-    //   visibilityTimeout: cdk.Duration.seconds(300)
-    // });
+      new cdk.CfnOutput(this, 'BucketName', { value: bucket.bucketName });
+    }
   }
-}

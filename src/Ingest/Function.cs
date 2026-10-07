@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text;
 using System.Text.Json;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
@@ -40,20 +41,24 @@ public class Function
         ILambdaContext context
     )
     {
+        string body = request.IsBase64Encoded
+            ? Encoding.UTF8.GetString(Convert.FromBase64String(request.Body))
+            : request.Body;
+
         DateTimeOffset receivedAt = _clock.GetUtcNow();
 
         // TODO 1: request.Body null or empty → return BadRequest(...)
-        if (string.IsNullOrEmpty(request.Body))
+        if (string.IsNullOrEmpty(body))
         {
             return BadRequest("Invalid payload");
         }
 
         // TODO 2: PosReportParser.Parse(body) → on failure: log a warning, return BadRequest(result.Error!)
-        Result<PosReport> result = PosReportParser.Parse(request.Body);
+        Result<PosReport> result = PosReportParser.Parse(body);
 
         if (!result.IsSuccess && result.Error != null)
         {
-            context.Logger.LogWarning($"Error while parsing {request.Body}");
+            context.Logger.LogWarning($"Error while parsing {body}");
             return BadRequest(result.Error);
         }
 
@@ -74,7 +79,7 @@ public class Function
         {
             BucketName = _bucketName,
             Key = key,
-            ContentBody = request.Body,
+            ContentBody = body,
             ContentType = "text/plain",
         });
 

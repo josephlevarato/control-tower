@@ -16,7 +16,7 @@ public class Function
 {
     private readonly IAmazonS3 _s3;
     private readonly TimeProvider _clock;
-    private string _bucketname;
+    private string _bucketName;
 
     // Function called by AWS
     public Function()
@@ -41,16 +41,40 @@ public class Function
     )
     {
         DateTimeOffset receivedAt = _clock.GetUtcNow();
+
         // TODO 1: request.Body null or empty → return BadRequest(...)
+        if (string.IsNullOrEmpty(request.Body))
+        {
+            return BadRequest("Invalid payload");
+        }
+
         // TODO 2: PosReportParser.Parse(body) → on failure: log a warning, return BadRequest(result.Error!)
+        Result<PosReport> result = PosReportParser.Parse(request.Body);
+
+        if (!result.IsSuccess && result.Error != null)
+        {
+            context.Logger.LogWarning($"Error while parsing {request.Body}");
+            return BadRequest(result.Error);
+        }
+
         // TODO 3: FlightIdentity.Resolve(report, receivedAt) → same handling
+        Result<ResolvedIdentity> identity = FlightIdentity.Resolve(result.Value!, receivedAt);
+
+        if (!identity.IsSuccess && identity.Error != null)
+        {
+            return BadRequest(identity.Error);
+        }
+
+        string flightId = identity.Value!.FlightId;
+
         // TODO 4: string key = PosObjectKey.Build(flightId, receivedAt);
+        string key = PosObjectKey.Build(flightId, receivedAt);
 
         await _s3.PutObjectAsync(new PutObjectRequest
         {
-            BucketName = _bucketname,
+            BucketName = _bucketName,
             Key = key,
-            ContentBody = body,
+            ContentBody = request.Body,
             ContentType = "text/plain",
         });
 

@@ -13,6 +13,24 @@ This project's goal is to be able to track a plane's info and internal status:
 
 ---
 
+## Requirements
+
+- Node.js <= 22.20.0
+- .NET 10 SDK
+- AWS cli configured with credentials
+
+## Installation
+
+```
+cd infra/ && npm ci
+```
+```
+cd infra && cdk deploy
+```
+
+
+
+
 ## Decisions
 
 ### Ingest Lambda

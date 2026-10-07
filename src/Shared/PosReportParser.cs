@@ -35,7 +35,7 @@ public static class PosReportParser {
             return Result<PosReport>.Fail("Failed to parse destination airport");
         }
 
-        Regex dateTimeRegex = new Regex("^(?<day>\\d{2})(?<hour>\\d{2})(?<minute>\\d{2})$");
+        Regex dateTimeRegex = new Regex("^(?<day>[0-9]{2})(?<hour>[0-9]{2})(?<minute>[0-9]{2})$");
         Match dateTimeMatch = dateTimeRegex.Match(parts[3]);
         if (!dateTimeMatch.Success)
         {
@@ -61,7 +61,7 @@ public static class PosReportParser {
         }
 
         string coordinates = parts[4];
-        Regex cooRegex = new Regex("^(?<lat>[NS])(?<latDeg>\\d{2})(?<latMin>\\d{2}\\.\\d+)(?<lng>[EW])(?<lngDeg>\\d{3})(?<lngMin>\\d{2}\\.\\d+)$");
+        Regex cooRegex = new Regex("^(?<lat>[NS])(?<latDeg>[0-9]{2})(?<latMin>[0-9]{2}\\.[0-9]+)(?<lng>[EW])(?<lngDeg>[0-9]{3})(?<lngMin>[0-9]{2}\\.[0-9]+)$");
         Match cooMatch = cooRegex.Match(coordinates);
 
         if (!cooMatch.Success)
@@ -126,7 +126,7 @@ public static class PosReportParser {
 
         if (fuelFlowKgPerHour < 0)
         {
-            return Result<PosReport>.Fail("Fuel flow value needs to be over 0");
+            return Result<PosReport>.Fail("Fuel flow value cannot be negative");
         }
 
         double latitude = latDeg + latMin / 60;

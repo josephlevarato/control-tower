@@ -82,4 +82,43 @@ public class FunctionTest
             Arg.Any<CancellationToken>());
     }
 
+    [Fact]
+    public async Task InvalidStoredReportTest()
+    {
+        // Arrange
+        GivenStoredReport("garbage");
+        S3Event fakeEvent = EventFor("test-bucket", "pos/UL20420260904RGNBKK-2026-09-04T15%3A12%3A30.123Z");
+
+        // Act
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _function.Handler(fakeEvent, new TestLambdaContext()));
+
+        // Assert
+        await _s3.DidNotReceiveWithAnyArgs().PutObjectAsync(default!);
+        await _dynamo.DidNotReceiveWithAnyArgs().PutItemAsync(default!);
+        await _sqs.DidNotReceiveWithAnyArgs().SendMessageAsync(default!);
+    }
+
+    [Fact]
+    public async Task DynamoDBFailingTest()
+    {
+        // Arrange
+        GivenStoredReport("POS/UL204.FR RGN/TO BKK/041205/N1642.3E09612.5/450/12500/2800");
+        S3Event fakeEvent = EventFor("test-bucket", "pos/UL20420260904RGNBKK-2026-09-04T15%3A12%3A30.123Z");
+        _dynamo.PutItemAsync(Arg.Any<PutItemRequest>(), Arg.Any<CancellationToken>())
+            .Returns<Task<PutItemResponse>>(_ => throw new AmazonDynamoDBException("down"));
+
+        // Act
+        await Assert.ThrowsAsync<AmazonDynamoDBException>(() => _function.Handler(fakeEvent, new TestLambdaContext()));
+
+        // Assert
+        await _s3.Received(1).PutObjectAsync(
+            Arg.Is<PutObjectRequest>(r =>
+                r.BucketName == "test-bucket" &&
+                r.Key == "attachment/UL20420260904RGNBKK-2026-09-04T12:05:00Z.json"),
+            Arg.Any<CancellationToken>());
+
+        await _dynamo.Received(1).PutItemAsync(Arg.Any<PutItemRequest>(), Arg.Any<CancellationToken>());
+        await _sqs.DidNotReceiveWithAnyArgs().SendMessageAsync(default!);
+    }
+
 }

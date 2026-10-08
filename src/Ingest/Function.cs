@@ -1,10 +1,8 @@
-using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.Serialization.SystemTextJson;
-using Amazon.Runtime.Credentials.Internal;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Shared;
@@ -47,13 +45,11 @@ public class Function
 
         DateTimeOffset receivedAt = _clock.GetUtcNow();
 
-        // TODO 1: request.Body null or empty → return BadRequest(...)
         if (string.IsNullOrEmpty(body))
         {
             return BadRequest("Invalid payload");
         }
 
-        // TODO 2: PosReportParser.Parse(body) → on failure: log a warning, return BadRequest(result.Error!)
         Result<PosReport> result = PosReportParser.Parse(body);
 
         if (!result.IsSuccess && result.Error != null)
@@ -62,7 +58,6 @@ public class Function
             return BadRequest(result.Error);
         }
 
-        // TODO 3: FlightIdentity.Resolve(report, receivedAt) → same handling
         Result<ResolvedIdentity> identity = FlightIdentity.Resolve(result.Value!, receivedAt);
 
         if (!identity.IsSuccess && identity.Error != null)
@@ -72,7 +67,6 @@ public class Function
 
         string flightId = identity.Value!.FlightId;
 
-        // TODO 4: string key = PosObjectKey.Build(flightId, receivedAt);
         string key = PosObjectKey.Build(flightId, receivedAt);
 
         await _s3.PutObjectAsync(new PutObjectRequest

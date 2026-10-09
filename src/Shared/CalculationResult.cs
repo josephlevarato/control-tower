@@ -15,7 +15,7 @@ public record CalculationResult
     public required string FlightId { get; init; }
     public required string Timestamp { get; init; }
     public required CalculationResultInput Input { get; init; }
-    public required double RemainingFlightTimeMinutes { get; init; }
-    public required double EstimatedFuelAtArrivalKg { get; init; }
+    public required int RemainingFlightTimeMinutes { get; init; }
+    public required int EstimatedFuelAtArrivalKg { get; init; }
     public required bool LowFuelWarning { get; init; }
 }

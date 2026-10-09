@@ -21,7 +21,7 @@ public class CalculatorTest
             FuelFlowKgPerHour = 2800,
         };
 
-        Airport bangkok = new Airport{ Latitude = 13.6900, Longitude = 100.7501 };
+        Airport bangkok = new () { Latitude = 13.6900, Longitude = 100.7501 };
 
         FlightProjection result = FlightCalculator.Calculate(attachment, bangkok);
 
@@ -36,7 +36,7 @@ public class CalculatorTest
     [InlineData(1988, false)]  // raw +0.81 kg
     public void LowFuelWarningTest(int fuelOnBoardKg, bool expectedWarning)
     {
-        Airport bangkok = new Airport{ Latitude = 13.6900, Longitude = 100.7501 };
+        Airport bangkok = new () { Latitude = 13.6900, Longitude = 100.7501 };
 
         PosAttachment attachment = new PosAttachment
         {
@@ -70,5 +70,39 @@ public class CalculatorTest
         Result<Airport> jfk = FlightCalculator.FindAirport("JFK");
         Assert.False(jfk.IsSuccess);
         Assert.Equal("Unknown destination airport: JFK", jfk.Error);
+    }
+
+    [Fact]
+    public void FlightProjectionToResultTest()
+    {
+        PosAttachment attachment = new PosAttachment
+        {
+            FlightId = "UL20420260904RGNBKK",
+            FlightNumber = "UL204",
+            Departure = "RGN",
+            Destination = "BKK",
+            Timestamp = "2026-09-04T12:05:00Z",
+            Latitude = 16.705,
+            Longitude = 96.2083,
+            GroundSpeedKnots = 450,
+            FuelOnBoardKg = 12500,
+            FuelFlowKgPerHour = 2800,
+        };
+
+        Airport bangkok = new () { Latitude = 13.6900, Longitude = 100.7501 };
+        FlightProjection fpResult = FlightCalculator.Calculate(attachment, bangkok);
+        CalculationResult result = fpResult.ToResult(attachment, "2026-10-09T12:05:00Z");
+
+        Assert.Equal("UL20420260904RGNBKK", result.FlightId);
+        Assert.Equal("2026-10-09T12:05:00Z", result.Timestamp);
+        Assert.Equal(16.705, result.Input.CurrentLatitude);
+        Assert.Equal(96.2083, result.Input.CurrentLongitude);
+        Assert.Equal("BKK", result.Input.Destination);
+        Assert.Equal(450, result.Input.GroundSpeedKnots);
+        Assert.Equal(12500, result.Input.FuelOnBoardKg);
+        Assert.Equal(2800, result.Input.FuelFlowKgPerHour);
+        Assert.Equal(43, result.RemainingFlightTimeMinutes);
+        Assert.Equal(10513, result.EstimatedFuelAtArrivalKg);
+        Assert.False(result.LowFuelWarning);
     }
 }

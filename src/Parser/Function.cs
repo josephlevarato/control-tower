@@ -1,6 +1,4 @@
-using System.ComponentModel.DataAnnotations;
 using System.Net;
-using System.Net.Mail;
 using System.Text.Json;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
@@ -55,7 +53,6 @@ public class Function
     {
         string key = WebUtility.UrlDecode(encodedKey);
 
-        // TODO 1: PosObjectKey.Parse(key) → on failure: throw new InvalidOperationException(...)
         Result<PosObjectKeyParts> parsedKey = PosObjectKey.Parse(key);
 
         if (!parsedKey.IsSuccess)
@@ -72,7 +69,6 @@ public class Function
             raw = await reader.ReadToEndAsync();
         }
 
-        // TODO 2: PosReportParser.Parse(raw) → throw on failure
         Result<PosReport> parsedRaw = PosReportParser.Parse(raw);
 
         if (!parsedRaw.IsSuccess)
@@ -80,15 +76,13 @@ public class Function
             throw new InvalidOperationException(parsedRaw.Error);
         }
 
-        // TODO 3: FlightIdentity.Resolve(report, <receivedAt from TODO 1>) → throw on failure
-         Result<ResolvedIdentity> resolvedIdentity = FlightIdentity.Resolve(parsedRaw.Value!, parsedKey.Value!.ReceivedAt);
+        Result<ResolvedIdentity> resolvedIdentity = FlightIdentity.Resolve(parsedRaw.Value!, parsedKey.Value!.ReceivedAt);
 
         if (!resolvedIdentity.IsSuccess)
         {
             throw new InvalidOperationException(resolvedIdentity.Error);
         }
 
-        // TODO 4: PosAttachment.From(...), and attachmentKey = "attachment/{flightId}-{timestamp}.json"
         PosAttachment attachment = PosAttachment.From(parsedRaw.Value!, resolvedIdentity.Value!);
 
         string attachmentKey = $"attachment/{attachment.FlightId}-{attachment.Timestamp}.json";
@@ -112,10 +106,12 @@ public class Function
             },
         });
 
+        CalculationRequest request = new () { FlightId = attachment.FlightId, Timestamp = attachment.Timestamp };
+
         await _sqs.SendMessageAsync(new SendMessageRequest
         {
             QueueUrl = _queueUrl,
-            MessageBody = JsonSerializer.Serialize(new { attachment.FlightId, attachment.Timestamp }, PosJson.Options),
+            MessageBody = JsonSerializer.Serialize(request, PosJson.Options),
         });
 
         context.Logger.LogInformation($"Parsed {key} into {attachmentKey}");

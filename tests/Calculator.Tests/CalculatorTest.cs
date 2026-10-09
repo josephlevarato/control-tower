@@ -31,46 +31,29 @@ public class CalculatorTest
         Assert.False(result.LowFuelWarning);
     }
 
-    [Fact]
-    public void LowFuelWarningTest()
+    [Theory]
+    [InlineData(1987, true)]   // raw −0.19 kg, rounds to 0, still a warning
+    [InlineData(1988, false)]  // raw +0.81 kg
+    public void LowFuelWarningTest(int fuelOnBoardKg, bool expectedWarning)
     {
-        PosAttachment attachment1 = new PosAttachment
-        {
-            FlightId = "",
-            FlightNumber = "",
-            Departure = "SIN",
-            Destination = "BKK",
-            Timestamp = "",
-            Latitude = 16.705,
-            Longitude = 96.2083,
-            GroundSpeedKnots = 450,
-            FuelOnBoardKg = 1987,
-            FuelFlowKgPerHour = 2800,
-        };
-
         Airport bangkok = new Airport{ Latitude = 13.6900, Longitude = 100.7501 };
 
-        FlightProjection r1 = FlightCalculator.Calculate(attachment1, bangkok);
-
-        Assert.True(r1!.LowFuelWarning);
-
-        PosAttachment attachment2 = new PosAttachment
+        PosAttachment attachment = new PosAttachment
         {
             FlightId = "",
             FlightNumber = "",
-            Departure = "SIN",
+            Departure = "KUL",
             Destination = "BKK",
             Timestamp = "",
             Latitude = 16.705,
             Longitude = 96.2083,
             GroundSpeedKnots = 450,
-            FuelOnBoardKg = 1988,
+            FuelOnBoardKg = fuelOnBoardKg,
             FuelFlowKgPerHour = 2800,
         };
 
-        FlightProjection r2 = FlightCalculator.Calculate(attachment2, bangkok);
-
-        Assert.False(r2.LowFuelWarning);
+        FlightProjection result = FlightCalculator.Calculate(attachment, bangkok);
+        Assert.Equal(expectedWarning, result.LowFuelWarning);
     }
 
     [Fact]

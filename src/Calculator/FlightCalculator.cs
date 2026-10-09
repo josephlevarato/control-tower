@@ -8,7 +8,7 @@ public class FlightCalculator
     const double EarthRadiusNauticalMiles = 3440.065;
     private static double ToRadians(double degrees) => degrees * Math.PI / 180.0;
 
-    private static FrozenDictionary<string, Airport> airports = new Dictionary<string, Airport>
+    private static readonly FrozenDictionary<string, Airport> airports = new Dictionary<string, Airport>
     {
         { "RGN", new Airport{ Latitude = 16.9073, Longitude = 96.1332 } },
         { "BKK", new Airport{ Latitude = 13.6900, Longitude = 100.7501 } },

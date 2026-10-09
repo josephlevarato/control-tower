@@ -57,12 +57,16 @@ public class CalculatorTest
     }
 
     [Fact]
-    public void FindAirportTest()
+    public void FindAirportSuccessTest()
     {
         Result<Airport> bkk = FlightCalculator.FindAirport("BKK");
         Assert.True(bkk.IsSuccess);
         Assert.Null(bkk.Error);
+    }
 
+    [Fact]
+    public void FindAirportFailureTest()
+    {
         Result<Airport> jfk = FlightCalculator.FindAirport("JFK");
         Assert.False(jfk.IsSuccess);
         Assert.Equal("Unknown destination airport: JFK", jfk.Error);

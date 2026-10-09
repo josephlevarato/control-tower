@@ -34,8 +34,8 @@ public class FlightCalculator
         return new FlightProjection
         {
             DistanceNm = distanceNm,
-            RemainingFlightTimeMinutes = Math.Round(remainingTime * 60, MidpointRounding.AwayFromZero),
-            EstimatedFuelAtArrivalKg = Math.Round(fuelAtArrival, MidpointRounding.AwayFromZero),
+            RemainingFlightTimeMinutes = (int) Math.Round(remainingTime * 60, MidpointRounding.AwayFromZero),
+            EstimatedFuelAtArrivalKg = (int) Math.Round(fuelAtArrival, MidpointRounding.AwayFromZero),
             LowFuelWarning = fuelAtArrival < 0,
         };
     }

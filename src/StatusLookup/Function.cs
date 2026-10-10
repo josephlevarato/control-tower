@@ -2,11 +2,13 @@ using System.Text.Json;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
 using Amazon.Lambda.Core;
+using Amazon.Lambda.Serialization.SystemTextJson;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Shared;
 
+[assembly: LambdaSerializer(typeof(DefaultLambdaJsonSerializer))]
 namespace StatusLookup;
 
 public class Function

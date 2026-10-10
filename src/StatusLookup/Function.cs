@@ -1,9 +1,7 @@
-using System.Globalization;
 using System.Text.Json;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
 using Amazon.Lambda.Core;
-using Amazon.Lambda.Serialization.SystemTextJson;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.S3;
 using Amazon.S3.Model;
@@ -59,7 +57,6 @@ public class Function
             return BadRequest("Missing :flightId parameter");
         }
 
-
         var result = await LatestItemAsync(_resultsTableName, flightId);
         if (result is null)
         {
@@ -68,30 +65,31 @@ public class Function
             if (result is null) {
                 return NotFound($"No data found for {flightId}");
             }
+
+            // Flight details found but not yet calculated, return early.
+            return Json(200, new { flightId, status = "PARSED" });
         }
 
-        string attachmentKey = result.Item["attachment"].S;
-        string timestamp = result.Item["timestamp"].S;
+        string attachmentKey = result["attachment"].S;
 
         using GetObjectResponse response = await _s3.GetObjectAsync(new GetObjectRequest { BucketName = _bucketName, Key = attachmentKey });
+        CalculationResult? calculationResult = await JsonSerializer.DeserializeAsync<CalculationResult>(response.ResponseStream, PosJson.Options);
 
-        PosAttachment posAttachment = await JsonSerializer.DeserializeAsync<PosAttachment>(response.ResponseStream, PosJson.Options)
-            ?? throw new InvalidOperationException($"No data found for {flightId}");
-
-        Result<Airport> airport = FlightCalculator.FindAirport(posAttachment.Destination);
-
-        if (!airport.IsSuccess)
+        if (calculationResult is null)
         {
-            throw new InvalidOperationException(airport.Error);
+            return Json(500, $"Could not find matching data for {flightId}");
         }
 
-        FlightProjection flightProjection = FlightCalculator.Calculate(posAttachment, airport.Value!);
+        LookupResponse lookupResponse = new()
+        {
+            FlightId = calculationResult.FlightId,
+            Timestamp = calculationResult.Timestamp,
+            RemainingFlightTimeMinutes = calculationResult.RemainingFlightTimeMinutes,
+            EstimatedFuelAtArrivalKg = calculationResult.EstimatedFuelAtArrivalKg,
+            LowFuelWarning = calculationResult.LowFuelWarning,
+        };
 
-        string now = _clock.GetUtcNow().UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture);
-
-        CalculationResult calculationResult = flightProjection.ToResult(posAttachment, now);
-
-
+        return Json(200, lookupResponse);
     }
 
     private async Task<Dictionary<string, AttributeValue>?> LatestItemAsync(string tableName, string flightId)
@@ -110,4 +108,17 @@ public class Function
 
         return response.Items is { Count: > 0 } ? response.Items[0] : null;
     }
+
+    private static APIGatewayHttpApiV2ProxyResponse BadRequest(string detail) =>
+          Json(400, new { error = "Invalid request", detail });
+
+    private static APIGatewayHttpApiV2ProxyResponse NotFound(string detail) =>
+          Json(404, new { error = detail });
+
+    private static APIGatewayHttpApiV2ProxyResponse Json(int statusCode, object body) => new()
+    {
+        StatusCode = statusCode,
+        Body = JsonSerializer.Serialize(body, PosJson.Options),
+        Headers = new Dictionary<string, string> { ["Content-Type"] = "application/json" },
+    };
 }

@@ -10,6 +10,7 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
 import * as s3n from 'aws-cdk-lib/aws-s3-notifications';
 import * as destinations from 'aws-cdk-lib/aws-lambda-destinations';
+import * as eventsources from 'aws-cdk-lib/aws-lambda-event-sources';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import { Construct } from 'constructs';
 
@@ -115,6 +116,42 @@ export class InfraStack extends cdk.Stack {
             onFailure: parserFailureQueue,
         })
 
+        const resultsTable = new dynamodb.TableV2(this, 'CalculationResultsTable', {
+            partitionKey: { name: 'flightId', type: dynamodb.AttributeType.STRING },
+            sortKey: { name: 'timestamp', type: dynamodb.AttributeType.STRING },
+            removalPolicy: cdk.RemovalPolicy.DESTROY,
+        })
+
+        const calculatorFunction = dotnetFunction(this, 'Calculator', {
+            timeout: cdk.Duration.seconds(10),
+            environment: {
+                BUCKET_NAME: bucket.bucketName,
+                PARSED_TABLE_NAME: parsedTable.tableName,
+                RESULTS_TABLE_NAME: resultsTable.tableName,
+            }
+        })
+
+        calculatorFunction.addEventSource(
+            new eventsources.SqsEventSource(calculationQueue, { batchSize: 1})
+        )
+
+        calculatorFunction.addToRolePolicy(new iam.PolicyStatement({
+            actions: ['dynamodb:GetItem'],
+            resources: [parsedTable.tableArn],
+        }))
+        calculatorFunction.addToRolePolicy(new iam.PolicyStatement({
+            actions: ['s3:GetObject'],
+            resources: [bucket.arnForObjects('attachment/*')],
+        }))
+        calculatorFunction.addToRolePolicy(new iam.PolicyStatement({
+            actions: ['s3:PutObject'],
+            resources: [bucket.arnForObjects('results/*')],
+        }))
+        calculatorFunction.addToRolePolicy(new iam.PolicyStatement({
+            actions: ['dynamodb:PutItem'],
+            resources: [resultsTable.tableArn],
+        }))
+
         parserFunction.addToRolePolicy(new iam.PolicyStatement({
             actions: ['s3:GetObject'],
             resources: [bucket.arnForObjects('pos/*')],
@@ -143,5 +180,7 @@ export class InfraStack extends cdk.Stack {
         new cdk.CfnOutput(this, 'TableName', { value: parsedTable.tableName })
         new cdk.CfnOutput(this, 'CalculationQueueUrl', { value: calculationQueue.queueUrl })
         new cdk.CfnOutput(this, 'ParserFailureQueueUrl', { value: parserFailureQueue.queueUrl })
+        new cdk.CfnOutput(this, 'ResultsTableName', { value: resultsTable.tableName })
+        new cdk.CfnOutput(this, 'CalculationDlqUrl', { value: calculationDlq.queueUrl })
     }
 }

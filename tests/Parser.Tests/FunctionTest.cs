@@ -1,6 +1,5 @@
 using System.Text;
 using Amazon.Lambda.S3Events;
-using System.Text.Json;
 using Amazon.Lambda.TestUtilities;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
@@ -9,7 +8,6 @@ using Amazon.SQS.Model;
 using Amazon.S3;
 using Amazon.S3.Model;
 using NSubstitute;
-using Amazon.Lambda.Core;
 
 namespace Parser.Test;
 

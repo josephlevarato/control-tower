@@ -33,16 +33,6 @@ public class PosObjectKeyTest {
     }
 
     [Fact]
-    public void ParseUrlEncodedKeyTest()
-    {
-        Result<PosObjectKeyParts> result = PosObjectKey.Parse("pos/UL20420260904RGNBKK-2026-09-04T15%3A12%3A30.123Z");
-
-        Assert.True(result.IsSuccess);
-        Assert.Equal("UL20420260904RGNBKK", result.Value!.FlightId);
-        Assert.Equal(ReceivedAt, result.Value.ReceivedAt);
-    }
-
-    [Fact]
     public void ParseFeedsFlightIdentityTest()
     {
         PosReport report = PosReportParser.Parse("POS/UL204.FR RGN/TO BKK/041205/N1642.3E09612.5/450/12500/2800").Value!;

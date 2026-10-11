@@ -1,7 +1,6 @@
 namespace Shared;
 
 using System.Globalization;
-using System.Net;
 using System.Text.RegularExpressions;
 
 public sealed record PosObjectKeyParts(string FlightId, DateTimeOffset ReceivedAt);

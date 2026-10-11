@@ -69,6 +69,7 @@ public class Function
             }
 
             // Flight details found but not yet calculated, return early.
+            context.Logger.LogInformation($"Flight {flightId} found but not available yet.");
             return Json(200, new { flightId, status = "PARSED" });
         }
 
@@ -79,6 +80,7 @@ public class Function
 
         if (calculationResult is null)
         {
+            context.Logger.LogWarning($"Missing calculation result for found {flightId}");
             return Json(500, $"Could not find matching data for {flightId}");
         }
 
@@ -90,6 +92,8 @@ public class Function
             EstimatedFuelAtArrivalKg = calculationResult.EstimatedFuelAtArrivalKg,
             LowFuelWarning = calculationResult.LowFuelWarning,
         };
+
+        context.Logger.LogInformation($"Found and returned data for {flightId}");
 
         return Json(200, lookupResponse);
     }

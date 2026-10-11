@@ -54,7 +54,7 @@ public class Function
 
         if (!result.IsSuccess && result.Error != null)
         {
-            context.Logger.LogWarning($"Error while parsing {body}");
+            context.Logger.LogWarning($"Error while parsing: {result.Error}");
             return BadRequest(result.Error);
         }
 

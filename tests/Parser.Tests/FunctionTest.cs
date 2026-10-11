@@ -9,7 +9,7 @@ using Amazon.S3;
 using Amazon.S3.Model;
 using NSubstitute;
 
-namespace Parser.Test;
+namespace Parser.Tests;
 
 public class FunctionTest
 {

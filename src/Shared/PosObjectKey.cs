@@ -21,11 +21,8 @@ public static class PosObjectKey
 
     public static Result<PosObjectKeyParts> Parse(string key)
     {
-        // S3 event notifications URL-encode the key (":" arrives as "%3A")
-        string decoded = WebUtility.UrlDecode(key);
-
         Regex keyRegex = new Regex("^pos/(?<flightId>[A-Z0-9]+)-(?<receivedAt>.+)$");
-        Match keyMatch = keyRegex.Match(decoded);
+        Match keyMatch = keyRegex.Match(key);
 
         if (!keyMatch.Success)
         {

@@ -131,6 +131,21 @@ export class InfraStack extends cdk.Stack {
             }
         })
 
+        const statusLookupFunction = dotnetFunction(this, 'StatusLookup', {
+            timeout: cdk.Duration.seconds(10),
+            environment: {
+                BUCKET_NAME: bucket.bucketName,
+                PARSED_TABLE_NAME: parsedTable.tableName,
+                RESULTS_TABLE_NAME: resultsTable.tableName,
+            }
+        })
+
+        api.addRoutes({
+            path: '/status/{flightId}',
+            methods: [apigw.HttpMethod.GET],
+            integration: new HttpLambdaIntegration('StatusLookupIntegration', statusLookupFunction),
+        });
+
         calculatorFunction.addEventSource(
             new eventsources.SqsEventSource(calculationQueue, { batchSize: 1})
         )
@@ -167,6 +182,16 @@ export class InfraStack extends cdk.Stack {
         parserFunction.addToRolePolicy(new iam.PolicyStatement({
             actions: ['sqs:SendMessage'],
             resources: [calculationQueue.queueArn],
+        }))
+
+        statusLookupFunction.addToRolePolicy(new iam.PolicyStatement({
+            actions: ['dynamodb:Query'],
+            resources: [parsedTable.tableArn, resultsTable.tableArn]
+        }))
+
+        statusLookupFunction.addToRolePolicy(new iam.PolicyStatement({
+            actions: ['s3:GetObject'],
+            resources: [bucket.arnForObjects('results/*')],
         }))
 
         bucket.addEventNotification(
